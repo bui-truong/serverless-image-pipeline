@@ -21,28 +21,32 @@ This pipeline performs:
 
 ## 🏗 Architecture Diagram
 
-                   +-----------------------+
-                   |     API Gateway       |
-                   |   (POST /start)       |
-                   +-----------+-----------+
-                               |
-                               v
-                   +-----------------------+
-                   |     Step Functions     |
-                   |  (Image Processing SM) |
-                   +-----------+-----------+
-                               |
-                               v
-                   +-----------------------+
-                   |        Lambda         |
-                   |   (Resize Function)   |
-                   +-----------+-----------+
-                               |
-                               v
-                   +-----------------------+
-                   |           S3          |
-                   | Input + Output Buckets|
-                   +-----------------------+
+```
+       +----------------------+                     +----------------------+
+       |      API Gateway     |                     |      EventBridge     |
+       |      (POST /start)   |                     |   (S3 ObjectCreated) |
+       +-----------+----------+                     +----------+-----------+
+           |                                           |
+         StartExecution                               StartExecution
+           |                                           |
+           v                                           v
+         +----------------------+ <-------------------------+
+         |    Step Functions    |      (Image Processing SM)
+         +-----------+----------+
+             |  Lambda Invoke
+             v
+           +-----+------+
+           |   Lambda   |   Resize to 500px wide, JPEG
+           | (Resize Fn)|
+           +-----+------+
+             |
+             v
+       +-----------------+-----------------+
+       |          Amazon S3 (Buckets)      |
+       |   Input (uploads)  |  Output      |
+       +---------------------+--------------+
+
+```
 
 ------------------------------------------------------------------------
 
@@ -325,55 +329,41 @@ Expected result:
 
 ------------------------------------------------------------------------
 
-## EventBridge Scheduler (Optional)
+## EventBridge 
 
-Use EventBridge to trigger the Step Function on a schedule.
-
-Input example:
+-   Event: Event pattern
 
 ``` json
 {
-  "bucket": "truongbui-image-input",
-  "key": "test-images/songs.jpeg"
+  "source": ["aws.s3"],
+  "detail-type": ["Object Created"],
+  "resources": ["The ARN of the original bucket"]
+}
+```
+-   Target: AWS Service -> Step Function state machine
+
+-   Input transformer: 
+
+    Input path:
+
+``` json
+{
+    "bucket":"$.detail.bucket.name",
+    "key":"$.detail.object.key",
+    "size":"$.detail.object.size"
+}
+```
+    Template:
+
+``` json
+{
+    "bucket": <bucket>,
+    "key": <key>,
+    "size": <size>
 }
 ```
 
 ------------------------------------------------------------------------
 
-## Demo Requirements
-
-Your demo video should show:
-
--   Input bucket before processing\
--   Triggering Step Functions\
--   Lambda logs\
--   Output bucket with resized image\
--   API Gateway test\
--   Optional: Scheduled EventBridge execution
-
-------------------------------------------------------------------------
-
-## Recommended Repository Structure
-
-    project/
-    │ README.md
-    │ lambda_function.py
-    │ state-machine.json
-    │ screenshots/
-    │ architecture.png
-
-------------------------------------------------------------------------
-
-## Conclusion
-
-This project demonstrates a scalable, event-driven, serverless image
-processing pipeline using:
-
--   S3\
--   Lambda\
--   Pillow\
--   Step Functions\
--   API Gateway\
--   EventBridge
-
-Fully cloud-native and production-ready.
+## License
+This project is licensed under the MIT License – see the `LICENSE` file for details.
