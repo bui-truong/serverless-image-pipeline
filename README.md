@@ -50,19 +50,9 @@ This pipeline performs:
 
 ------------------------------------------------------------------------
 
-## Prerequisites
-
--   AWS Account\
--   IAM permissions for Lambda, S3, API Gateway, Step Functions\
--   Python 3.11+\
--   Ability to upload a Lambda layer or deploy a Pillow-compatible
-    package
-
-------------------------------------------------------------------------
-
 ## S3 Setup
 
-### 1Input Bucket
+### Input Bucket
 
 Name:
 
